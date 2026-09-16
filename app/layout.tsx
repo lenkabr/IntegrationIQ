@@ -4,9 +4,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "IntegrationIQ — Integration feasibility research",
   description: "Find out whether an integration is feasible, with official documentation and explicit uncertainty.",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

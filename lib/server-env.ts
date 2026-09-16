@@ -1,2 +1,2 @@
-import { env } from 'cloudflare:workers';
-export function researchConfig(){const e=env as unknown as Record<string,string|undefined>;return {key:e.OPENAI_API_KEY||'',model:e.OPENAI_MODEL||'gpt-5.4'};}
+import 'server-only';
+export function researchConfig(){return {key:process.env.OPENAI_API_KEY||'',model:process.env.OPENAI_MODEL||'gpt-5.4'};}

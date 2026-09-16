@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { ResearchError, runResearch } from '@/lib/research';
 import { researchConfig } from '@/lib/server-env';
+export const runtime='nodejs';
+export const maxDuration=300;
 const inputSchema=z.object({product:z.string().trim().min(1).max(120),useCase:z.string().trim().min(15).max(2500)}).strict();
 // A small per-isolate concurrency/cooldown guard. Hosted access stays owner-private.
 const active=new Set<string>(); const recent=new Map<string,number>();
