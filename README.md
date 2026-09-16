@@ -4,9 +4,9 @@ IntegrationIQ helps product and technology partnership teams answer a question b
 
 ## Live prototype
 
-[Open IntegrationIQ](https://integrationiq-research.brozmanova-lenka.chatgpt.site)
+[Open IntegrationIQ](https://integration-iq.vercel.app)
 
-The hosted prototype currently has restricted access and is not a public demo.
+The public prototype is hosted on Vercel.
 
 ## Why it exists
 
