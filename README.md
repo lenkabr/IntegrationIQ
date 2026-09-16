@@ -2,6 +2,12 @@
 
 IntegrationIQ helps product and technology partnership teams answer a question before involving engineering: **Can our product integrate with this tool, and what do we still need to find out?**
 
+## Live prototype
+
+[Open IntegrationIQ](https://integrationiq-research.brozmanova-lenka.chatgpt.site)
+
+The hosted prototype currently has restricted access and is not a public demo.
+
 ## Why it exists
 
 Assessing a potential integration often means searching developer portals, reading technical documentation, and trying to separate what is possible from what requires partner approval or customer permission. IntegrationIQ brings that research into a concise, evidence-backed brief that Product Managers can understand.
