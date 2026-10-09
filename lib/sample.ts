@@ -14,6 +14,7 @@ export const sample: Assessment = {
  {name:'Profile-change notifications',text:'Slack can notify your product when member information changes.',status:'confirmed',sources:[2]},
  ],
  endpoints:[{name:'GET https://slack.com/api/users.list',text:'Lists workspace members, including deactivated accounts. Cursor-based pagination; Tier 2 rate limit (20+ requests per minute).',status:'confirmed',sources:[1]}],
+ resources:[],
  webhooks:[{name:'user_change',text:'Events API notification for member changes; requires users:read. Some profile-field changes are not covered.',status:'confirmed',sources:[2]}],
  risks:[{text:'Profile data may be missing or empty.',status:'confirmed',sources:[1]},{text:'Some profile changes, including custom fields, will not trigger a notification to your product.',status:'confirmed',sources:[2]}],
  confidence:'Medium',confidenceExplanation:'Official sources support the basic import. Department, manager coverage, and complete change synchronization need further verification.',nextStep:'Can our product access department and manager information? How can we keep those details up to date?',
