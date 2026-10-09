@@ -1,13 +1,13 @@
 import test from 'node:test';
 import {z} from 'zod';
 import assert from 'node:assert/strict';
-import {canonicalUrl,consultedUrls,enforceEvidence,runResearch,unknownReport,vettedLedger,jsonSchema} from '../lib/research';
+import {canonicalUrl,consultedUrls,enforceEvidence,runResearch,unknownReport,vettedLedger,vettedResearch,jsonSchema} from '../lib/research';
 import {reportSchema} from '../lib/report';
 import {sample} from '../lib/sample';
 const domains=[{domain:'docs.slack.dev',reason:'Official Slack developer documentation.'}];
 const entries=sample.report.sources.map((s,i)=>({name:i===0?sample.report.endpoints[0].name:i===1?'user_change':'OAuth',kind:(i===0?'endpoint':i===1?'webhook':'authentication') as 'endpoint'|'webhook'|'authentication',status:'confirmed' as const,fact:'Official evidence for fixture testing',sourceUrl:canonicalUrl(s.url),excerpt:'This is a fixture excerpt only.'}));
 const ledger={entries,unknowns:[]};
-const provider=(data:unknown,urls:string[]=[])=>new Response(JSON.stringify({status:'completed',output:[{type:'web_search_call',action:{sources:urls.map(url=>({url}))}},{type:'message',content:[{type:'output_text',text:JSON.stringify(data)}]}]}),{status:200});
+const provider=(data:unknown,urls:string[]=[],opened=true)=>new Response(JSON.stringify({status:'completed',output:[... (opened?urls.map(url=>({type:'web_search_call',action:{type:'open_page',url}})):[]),{type:'web_search_call',action:{sources:urls.map(url=>({url}))}},{type:'message',content:[{type:'output_text',text:JSON.stringify(data)}]}]}),{status:200});
 test('reject unsafe URLs and unrelated citation sources',()=>{assert.equal(canonicalUrl('javascript:alert(1)'),'');assert.equal(canonicalUrl('https://user:password@example.com'),'');assert.equal(canonicalUrl('http://localhost/a'),'');assert.equal(canonicalUrl('https://docs.slack.dev:8443/a'),'');const raw={entries:[...entries,{...entries[0],sourceUrl:'https://docs.slack.dev.evil.example/docs'}],unknowns:[]};const urls=new Set(raw.entries.map(e=>e.sourceUrl));assert.equal(vettedLedger(raw,urls,['docs.slack.dev']).entries.length,3);assert.equal(vettedLedger(raw,new Set(),['docs.slack.dev']).entries.length,0)});
 test('trust gate removes invented endpoints and downgrades overall assessment',()=>{const r=structuredClone(sample.report);r.endpoints[0].name='GET /imaginary-employees';const out=enforceEvidence(r,ledger,domains);assert.equal(out.endpoints.length,0);assert.equal(out.verdict,'Insufficient information');assert.equal(out.confidence,'Low')});
 test('a fabricated citation cannot support a confirmed claim',()=>{const r=structuredClone(sample.report);r.capabilities[0].sources=[999];const out=enforceEvidence(r,ledger,domains);assert.equal(out.capabilities[0].status,'unknown');assert.equal(out.capabilities[0].sources.length,0);assert.equal(out.feasibility,'Unknown')});
@@ -28,3 +28,27 @@ test('unverified developer resource names are removed',()=>{const r=structuredCl
 
 test('public API evidence cannot confirm free developer access or marketplace eligibility',()=>{const r=structuredClone(sample.report);r.partnerAccess.fees={text:'Free for everyone',status:'confirmed',sources:[1]};r.partnerAccess.listing_requirements={text:'Anyone can list',status:'confirmed',sources:[1]};const out=enforceEvidence(r,ledger,domains);assert.equal(out.partnerAccess.fees.status,'unknown');assert.equal(out.partnerAccess.listing_requirements.status,'unknown');assert.equal(out.feasibility,'Medium');});
 test('partner requirements preserve correctly typed official evidence',()=>{const r=structuredClone(sample.report);r.partnerAccess.fees={text:'Developer access requires a paid plan.',status:'confirmed',sources:[1]};const out=enforceEvidence(r,{entries:[...entries,{...entries[0],kind:'fees',fact:'Developer access requires a paid plan.'}],unknowns:[]},domains);assert.equal(out.partnerAccess.fees.status,'confirmed');});
+
+ test('search results alone cannot verify API facts',()=>{
+ const response={output:[{type:'web_search_call',action:{type:'search',sources:entries.map(e=>({url:e.sourceUrl}))}}]};
+ assert.equal(vettedResearch(ledger,response,['docs.slack.dev']).entries.length,0);
+ });
+ test('missing endpoint evidence triggers a focused retry before partner research',async()=>{
+ const queue=[provider({ambiguous:false,vendors:[{...domains[0],ownershipEvidenceUrl:sample.report.sources[0].url}]},[sample.report.sources[0].url]),provider(ledger,sample.report.sources.map(s=>s.url),false),provider(ledger,sample.report.sources.map(s=>s.url)),provider({entries:[],unknowns:[]}),provider(sample.report)];
+ const calls:Record<string,unknown>[]=[];
+ const fetcher:typeof fetch=async (_url,options)=>{calls.push(JSON.parse(String(options?.body)));assert.ok(queue.length);return queue.shift()!};
+ const report=await runResearch({product:'Slack',useCase:sample.useCase},'fixture',new AbortController().signal,()=>{},fetcher);
+ assert.equal(calls.length,5);assert.match(String(calls[2].instructions),/first pass did not verify/);assert.equal(report.endpoints.length,1);
+ });
+ test('exhausted endpoint retry stays inconclusive',async()=>{
+ const queue=[provider({ambiguous:false,vendors:[{...domains[0],ownershipEvidenceUrl:sample.report.sources[0].url}]},[sample.report.sources[0].url]),provider(ledger,sample.report.sources.map(s=>s.url),false),provider(ledger,sample.report.sources.map(s=>s.url),false),provider({entries:[],unknowns:[]})];
+ const report=await runResearch({product:'Slack',useCase:sample.useCase},'fixture',new AbortController().signal,()=>{},async()=>{assert.ok(queue.length);return queue.shift()!});
+ assert.equal(queue.length,0);assert.equal(report.feasibility,'Unknown');assert.equal(report.endpoints.length,0);
+ });
+
+test('verified endpoints do not skip retry when requested field evidence is missing',async()=>{
+ const queue=[provider({ambiguous:false,vendors:[{...domains[0],ownershipEvidenceUrl:sample.report.sources[0].url}]},[sample.report.sources[0].url]),provider({...ledger,unknowns:['Requested manager field is not verified']},sample.report.sources.map(s=>s.url)),provider(ledger,sample.report.sources.map(s=>s.url)),provider({entries:[],unknowns:[]}),provider(sample.report)];
+ const calls:Record<string,unknown>[]=[];
+ await runResearch({product:'Slack',useCase:sample.useCase},'fixture',new AbortController().signal,()=>{},async (_url,options)=>{calls.push(JSON.parse(String(options?.body)));assert.ok(queue.length);return queue.shift()!});
+ assert.equal(calls.length,5);assert.match(String(calls[2].input),/Requested manager field is not verified/);
+});
