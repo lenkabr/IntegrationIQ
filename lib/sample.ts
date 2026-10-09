@@ -14,6 +14,7 @@ export const sample: Assessment = {
  {name:'Profile-change notifications',text:'Slack can notify your product when member information changes.',status:'confirmed',sources:[2]},
  ],
  endpoints:[{name:'GET https://slack.com/api/users.list',text:'Read the workspace member list, including people whose accounts have been deactivated.',status:'confirmed',sources:[1]}],
+ partnerAccess:{developer_access:{text:'Developer signup requirements were not checked in this older sample.',status:'unknown',sources:[]},fees:{text:'Developer or partner fees were not checked in this sample.',status:'unknown',sources:[]},partner_program:{text:'Partner application and selection requirements were not checked.',status:'unknown',sources:[]},marketplace:{text:'Marketplace availability was not checked in this sample.',status:'unknown',sources:[]},listing_requirements:{text:'Requirements to publish an integration were not checked.',status:'unknown',sources:[]}},
  resources:[],
  webhooks:[{name:'user_change',text:'Receive notifications when member details change. Permission to read members is required; some changes are not included.',status:'confirmed',sources:[2]}],
  risks:[{text:'Profile data may be missing or empty.',status:'confirmed',sources:[1]},{text:'Some profile changes, including custom fields, will not trigger a notification to your product.',status:'confirmed',sources:[2]}],
